@@ -1,0 +1,1 @@
+/usr/bin/c++   -g   CMakeFiles/SO_projekt_OS.dir/main.cpp.o  -o SO_projekt_OS 
