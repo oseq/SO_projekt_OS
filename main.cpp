@@ -7,8 +7,8 @@
     using namespace std;
 
 int zbiornik_paliwa= 5000;
-double utarg;
-float cena = 5;
+float utarg;
+float cena = 4.65;
 bool trwa = true;
 //long long sum=5000;
 //int ilosc_powtorzen= 50000;
@@ -36,9 +36,9 @@ void* counting_thread(void *arg)
 
         pthread_mutex_unlock(&mutex);
 
-       usleep(10000);
-       utarg= utarg+cena;
 
+       utarg= utarg+cena;
+       usleep(10000);
 
 
 
@@ -56,7 +56,7 @@ int main (void){
     initscr();
     printw("======================================================================");
     move(5,25);
-    printw("STACJA BEZNYNOWA");
+    printw("***STACJA BEZNYNOWA***");
     //move(30,25);
     mvprintw(20,0,"======================================================================");
     mvprintw(21,20,"wcisnij dowonly klawisz");
@@ -67,21 +67,29 @@ int main (void){
 
 
     pthread_t watek1;//id
-    int wartosc1 = 1000;
+    int wartosc1 = 100;
     pthread_create(&watek1,NULL, counting_thread, &wartosc1);
 
     pthread_t watek2;
-    int wartosc2 = 3000;
+    int wartosc2 = 300;
 
     pthread_create(&watek2,NULL, counting_thread, &wartosc2);
 
     //MONITOROWANIE WATKOW
     erase();
     initscr();
-    printw("Uzycie zbiornika glownego");
+    printw("======================================================================");
+    mvprintw(2,25,"***STACJA BEZNYNOWA***");
+    mvprintw(3,5,"Pojemnosc zbiornika %u", zbiornik_paliwa);
+    mvprintw(4,5,"Cena litra paliwa %*.*f PLN ",5,2, cena);
+
     while(trwa){
-        mvprintw(10,10,"Zbiornik %u", zbiornik_paliwa);
+        mvprintw(10,10,"Zbiornik [ %u litrow ] ", zbiornik_paliwa);
+        mvprintw(12,10,"Utarg [ %*.*f PLN ] ",5,2, utarg);
+
         refresh();
+
+
 
     }
     getch();
@@ -92,17 +100,9 @@ int main (void){
     pthread_join(watek2, NULL);
 
 
-   // cout<<"Paliwa w zbiorniku "<<zbiornik_paliwa<<endl;
-   // cout<<"Utarg "<<utarg<<endl;
-   // cout<<"sum "<<sum;
 
 
-   /* initscr();
-    printw("paliwo: %u ", zbiornik_paliwa);
-    refresh();
-    getch();
-    endwin();
-    return 0;*/
+
 
 
 }
