@@ -5,8 +5,57 @@
 
     using namespace std;
 
+int ilosc_powtorzen= 500000;
+long long sum=0;
+
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+void* counting_thread(void *arg)
+{
+    int offset = *(int *) arg;
+   for (int i = 0; i < ilosc_powtorzen; i++){
+
+        //Poczatek sekcji krytycznej
+        pthread_mutex_lock(&mutex);
+
+        sum +=offset;
+       //cout<<sum<<endl;
+
+        pthread_mutex_unlock(&mutex);
+
+    }
+    pthread_exit(NULL);
+
+}
+
+int main (void){
+
+    cout<<endl<<"ile powtorzen wykonac?"<<endl;
+    cin>>ilosc_powtorzen;
+
+    pthread_t watek1;
+    int wartosc1 = 1;
+    pthread_create(&watek1,NULL, counting_thread, &wartosc1);
 
 
+    pthread_t watek2;
+    int wartosc2 = -1;
+    pthread_create(&watek2,NULL, counting_thread, &wartosc2);
+
+
+    pthread_join(watek1, NULL);
+    pthread_join(watek2, NULL);
+
+
+    cout<<"Suma wynosi: "<<sum;
+    return 0;
+
+
+}
+
+
+
+/*
 struct sum_runner_struct{
     long long limit;
     long long answer;
@@ -69,3 +118,4 @@ for(int i=0; i<liczba_argumentow;i++) {
 
     return 0;
 }
+ */
