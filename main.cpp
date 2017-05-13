@@ -10,43 +10,94 @@ int zbiornik_paliwa= 5000;
 float utarg;
 float cena = 4.65;
 bool trwa = true;
+
+int wartosc1 = 65;
+int wartosc2 = 50;
+
+int nalane1;
+int nalane2;
+
+float naleznosc1;
+float naleznosc2;
+
 //long long sum=5000;
 //int ilosc_powtorzen= 50000;
 //long long sum=0;
+/*
+struct struktura_dystrybutora{
+    int kupione_paliwo;
+    float naleznosc;
+
+};*/
 
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void* counting_thread(void *arg)
 {
+    int nalane=0;
+    float naleznosc=0;
+   int pojemnosc_baku = *(int *) arg;
+   //float jedna_dziesiata_baku= pojemnosc_baku*0.1;
+    //int dziesiatki= 1;
 
 
-    int pojemnosc_baku = *(int *) arg;
    for (int i = 0; i < pojemnosc_baku; i++){
-
-
-
         //Poczatek sekcji krytycznej
         pthread_mutex_lock(&mutex);
+                zbiornik_paliwa = zbiornik_paliwa -1;
+                utarg= utarg+cena;
+       //Koniec sekcji krytycznej
+       pthread_mutex_unlock(&mutex);
 
-       // sum +=offset;
-       //cout<<sum<<endl;
+       nalane = nalane +1;
+       naleznosc = naleznosc+cena;
+       if (pojemnosc_baku ==wartosc1){
+           nalane1=nalane;
+           naleznosc1=naleznosc;
 
-       zbiornik_paliwa = zbiornik_paliwa -1;
+       }else{
+           nalane2=nalane;
+           naleznosc2=naleznosc;
 
-        pthread_mutex_unlock(&mutex);
+       }
+       usleep(200000);
 
 
-       utarg= utarg+cena;
-       usleep(10000);
+    }
 
+    pthread_exit(NULL);
+
+}
+
+void* monitoring(void *arg){
+    erase();
+    initscr();
+    printw("======================================================================");
+    mvprintw(2,25,"***STACJA BEZNYNOWA***");
+    mvprintw(3,5,"Pojemnosc zbiornika: %u l.", zbiornik_paliwa);
+    mvprintw(4,5,"Cena litra paliwa: %*.*f PLN ",5,2, cena);
+    mvprintw(5,5,"Pojemnosc zbiornika 1 samochodu: %u l.", wartosc1);
+    mvprintw(6,5,"Pojemnosc zbiornika 2 samochodu: %u l.", wartosc2);
+
+    while(trwa){
+        mvprintw(10,10,"Zbiornik [ %u litrow ] ", zbiornik_paliwa);
+        mvprintw(12,10,"Utarg [ %*.*f PLN ] ",5,2, utarg);
+
+        if(nalane1 >0){
+            mvprintw(15,10,"samochod 1 [ %u litrow ]  ", nalane1);
+            mvprintw(16,20," [ %*.*f PLN ] ",5,2, naleznosc1);}
+        if(nalane2 >0){
+            mvprintw(18,10,"samochod 2 [ %u litrow ]  ", nalane2);
+            mvprintw(19,20," [ %*.*f PLN ] ",5,2, naleznosc2);}
+
+        refresh();
 
 
 
     }
-    trwa = false;
-    pthread_exit(NULL);
-
+    getch();
+    endwin();
 
 }
 
@@ -66,40 +117,28 @@ int main (void){
 
 
 
-    pthread_t watek1;//id
-    int wartosc1 = 100;
-    pthread_create(&watek1,NULL, counting_thread, &wartosc1);
+    pthread_t watek_wyswietlania;
+    int wartosc3 = 1;
+    pthread_create(&watek_wyswietlania,NULL, monitoring, &wartosc3);
 
+
+    pthread_t watek1;//id
     pthread_t watek2;
-    int wartosc2 = 300;
+
+    pthread_create(&watek1,NULL, counting_thread, &wartosc1);
+    usleep(5000000);
 
     pthread_create(&watek2,NULL, counting_thread, &wartosc2);
 
+
     //MONITOROWANIE WATKOW
-    erase();
-    initscr();
-    printw("======================================================================");
-    mvprintw(2,25,"***STACJA BEZNYNOWA***");
-    mvprintw(3,5,"Pojemnosc zbiornika %u", zbiornik_paliwa);
-    mvprintw(4,5,"Cena litra paliwa %*.*f PLN ",5,2, cena);
 
-    while(trwa){
-        mvprintw(10,10,"Zbiornik [ %u litrow ] ", zbiornik_paliwa);
-        mvprintw(12,10,"Utarg [ %*.*f PLN ] ",5,2, utarg);
-
-        refresh();
-
-
-
-    }
-    getch();
-    endwin();
 
 
     pthread_join(watek1, NULL);
     pthread_join(watek2, NULL);
-
-
+    trwa= false;
+    pthread_join(watek_wyswietlania, NULL);
 
 
 
@@ -122,8 +161,6 @@ void* sum_runner(void* arg){
 
     long long sum = 0;
 
-    //long long *limit_ptr = (long long*) arg;
-  //  long long limit  = *limit_ptr;
 
 
     for (long long i= 0; i<=arg_struct->limit; i++){
