@@ -1,54 +1,108 @@
 #include <iostream>
-
+#include <unistd.h>
+#include <ncurses.h>
 
 
 
     using namespace std;
 
-int ilosc_powtorzen= 500000;
-long long sum=0;
+int zbiornik_paliwa= 5000;
+double utarg;
+float cena = 5;
+bool trwa = true;
+//long long sum=5000;
+//int ilosc_powtorzen= 50000;
+//long long sum=0;
+
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void* counting_thread(void *arg)
 {
-    int offset = *(int *) arg;
-   for (int i = 0; i < ilosc_powtorzen; i++){
+
+
+    int pojemnosc_baku = *(int *) arg;
+   for (int i = 0; i < pojemnosc_baku; i++){
+
+
 
         //Poczatek sekcji krytycznej
         pthread_mutex_lock(&mutex);
 
-        sum +=offset;
+       // sum +=offset;
        //cout<<sum<<endl;
+
+       zbiornik_paliwa = zbiornik_paliwa -1;
 
         pthread_mutex_unlock(&mutex);
 
+       usleep(10000);
+       utarg= utarg+cena;
+
+
+
+
+
     }
+    trwa = false;
     pthread_exit(NULL);
+
 
 }
 
 int main (void){
 
-    cout<<endl<<"ile powtorzen wykonac?"<<endl;
-    cin>>ilosc_powtorzen;
+   //OKNO POCZATKOWE
+    initscr();
+    printw("======================================================================");
+    move(5,25);
+    printw("STACJA BEZNYNOWA");
+    //move(30,25);
+    mvprintw(20,0,"======================================================================");
+    mvprintw(21,20,"wcisnij dowonly klawisz");
+    refresh();
+    getch();
+    endwin();
 
-    pthread_t watek1;
-    int wartosc1 = 1;
+
+
+    pthread_t watek1;//id
+    int wartosc1 = 1000;
     pthread_create(&watek1,NULL, counting_thread, &wartosc1);
 
-
     pthread_t watek2;
-    int wartosc2 = -1;
+    int wartosc2 = 3000;
+
     pthread_create(&watek2,NULL, counting_thread, &wartosc2);
+
+    //MONITOROWANIE WATKOW
+    erase();
+    initscr();
+    printw("Uzycie zbiornika glownego");
+    while(trwa){
+        mvprintw(10,10,"Zbiornik %u", zbiornik_paliwa);
+        refresh();
+
+    }
+    getch();
+    endwin();
 
 
     pthread_join(watek1, NULL);
     pthread_join(watek2, NULL);
 
 
-    cout<<"Suma wynosi: "<<sum;
-    return 0;
+   // cout<<"Paliwa w zbiorniku "<<zbiornik_paliwa<<endl;
+   // cout<<"Utarg "<<utarg<<endl;
+   // cout<<"sum "<<sum;
+
+
+   /* initscr();
+    printw("paliwo: %u ", zbiornik_paliwa);
+    refresh();
+    getch();
+    endwin();
+    return 0;*/
 
 
 }
