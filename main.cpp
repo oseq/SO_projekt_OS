@@ -11,8 +11,8 @@ float utarg;
 float cena = 4.65;
 bool trwa = true;
 
-int wartosc1 = 65;
-int wartosc2 = 50;
+int wartosc1 = 40;
+int wartosc2 = 30;
 
 int nalane1;
 int nalane2;
@@ -46,7 +46,7 @@ void* counting_thread(void *arg)
         //Poczatek sekcji krytycznej
         pthread_mutex_lock(&mutex);
                 zbiornik_paliwa = zbiornik_paliwa -1;
-                utarg= utarg+cena;
+
        //Koniec sekcji krytycznej
        pthread_mutex_unlock(&mutex);
 
@@ -65,31 +65,54 @@ void* counting_thread(void *arg)
 
 
     }
-
+    utarg= utarg+naleznosc;
     pthread_exit(NULL);
 
 }
 
 void* monitoring(void *arg){
     erase();
+
+
     initscr();
+    start_color();
+    init_pair(1,COLOR_GREEN,COLOR_BLACK);
+    init_pair(2,COLOR_BLUE,COLOR_BLACK);
+    init_pair(3,COLOR_RED,COLOR_BLACK);
+    attron(COLOR_PAIR(1));
     printw("======================================================================");
+    attroff(COLOR_PAIR(1));
+    attron(COLOR_PAIR(2));
     mvprintw(2,25,"***STACJA BEZNYNOWA***");
-    mvprintw(3,5,"Pojemnosc zbiornika: %u l.", zbiornik_paliwa);
-    mvprintw(4,5,"Cena litra paliwa: %*.*f PLN ",5,2, cena);
-    mvprintw(5,5,"Pojemnosc zbiornika 1 samochodu: %u l.", wartosc1);
-    mvprintw(6,5,"Pojemnosc zbiornika 2 samochodu: %u l.", wartosc2);
+
+    attroff(COLOR_PAIR(2));
+    attron(COLOR_PAIR(1));
+    mvprintw(3,0,"======================================================================");
+    mvprintw(4,5,"Pojemnosc zbiornika: %u l.", zbiornik_paliwa);
+    mvprintw(5,5,"Cena litra paliwa: %*.*f PLN ",5,2, cena);
+    mvprintw(6,5,"Pojemnosc zbiornika 1 samochodu: %u l.", wartosc1);
+    mvprintw(7,5,"Pojemnosc zbiornika 2 samochodu: %u l.", wartosc2);
 
     while(trwa){
+        attron(COLOR_PAIR(2));
         mvprintw(10,10,"Zbiornik [ %u litrow ] ", zbiornik_paliwa);
-        mvprintw(12,10,"Utarg [ %*.*f PLN ] ",5,2, utarg);
+        mvprintw(11,10,"Utarg [ %*.*f PLN ] ",5,2, utarg);
 
-        if(nalane1 >0){
-            mvprintw(15,10,"samochod 1 [ %u litrow ]  ", nalane1);
-            mvprintw(16,20," [ %*.*f PLN ] ",5,2, naleznosc1);}
-        if(nalane2 >0){
-            mvprintw(18,10,"samochod 2 [ %u litrow ]  ", nalane2);
-            mvprintw(19,20," [ %*.*f PLN ] ",5,2, naleznosc2);}
+        attroff(COLOR_PAIR(2));
+        attron(COLOR_PAIR(1));
+
+        if(nalane1 >0) {
+
+            mvprintw(14, 10, "DYSTRYBUTOR 1:");
+            mvprintw(15, 10, "[ %u litrow ]  ", nalane1);
+            mvprintw(16, 10, "[ %*.*f PLN ] ", 5, 2, naleznosc1);
+        }
+
+        if (nalane2 > 0) {
+            mvprintw(14, 40, "DYSTRYBUTOR 2:");
+            mvprintw(15, 40, "[ %u litrow ]  ", nalane2);
+            mvprintw(16, 40, "[ %*.*f PLN ] ", 5, 2, naleznosc2);
+            }
 
         refresh();
 
@@ -97,6 +120,7 @@ void* monitoring(void *arg){
 
     }
     getch();
+    attroff(COLOR_PAIR(1));
     endwin();
 
 }
@@ -131,7 +155,6 @@ int main (void){
     pthread_create(&watek2,NULL, counting_thread, &wartosc2);
 
 
-    //MONITOROWANIE WATKOW
 
 
 
