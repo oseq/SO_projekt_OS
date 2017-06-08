@@ -1,75 +1,66 @@
 #include <iostream>
 #include <unistd.h>
 #include <ncurses.h>
-
-
 using namespace std;
 
-int zbiornik_paliwa= 5000;
-float utarg;
+//OSKAR SPERUDA 2017
+
+//zmienne
+int zbiornik_paliwa= 5000; //pojemnosc glownego zbiornika z którego pobierane jest palio
+float utarg=0;             //utarg stacji
 float cena = 4.65;
-bool trwa = true;
 
-int wartosc1 = 40;
-int wartosc2 = 30;
+int wartosc1 = 40;         //zmienna okreslajaca jak duzo paliwa tankuje 1 samochod
+int wartosc2 = 30;         //zmienna okreslajaca jak duzo paliwa tankuje 2 samochod
 
-int nalane1;
-int nalane2;
+int nalane1=0;             //zmienna okreslajaca ile paliwa zostalo to samochodu 1
+int nalane2=0;             //zmienna okreslajaca ile paliwa zostalo to samochodu 1
+float naleznosc1=0;        //zmienna okreslajaca ile powinnnien zaplacic kierowca samochodu 1
+float naleznosc2=0;        //zmienna okreslajaca ile powinnnien zaplacic kierowca samochodu 1
 
-float naleznosc1;
-float naleznosc2;
+bool start1= false;       //zmienne boolowie okreslajace czy dany dystrybutor pracuje
+bool start2=false;
 
+//id watkow:
+pthread_t watek1;           //watek tankowania 1 samochodu
+pthread_t watek2;           //watek tankowania 2 samochodu
+pthread_t watek_wyswietlania;   //watek minitorowania procesu tankowania
 
-pthread_t watek1;//id
-pthread_t watek2;
-pthread_t watek_wyswietlania;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; //mutex
 
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void* tankowanie(void *arg)
 {
-    int nalane=0;
-    float naleznosc=0;
-   int pojemnosc_baku = *(int *) arg;
-
-
+   int pojemnosc_baku = *(int *) arg; //zienna inicjowana wartoscia argumentu funkcji pojemnoscia baku samochodu
 
    for (int i = 0; i < pojemnosc_baku; i++){
+          pthread_mutex_lock(&mutex);     //Poczatek sekcji krytycznej
+         //##########################################
+         zbiornik_paliwa = zbiornik_paliwa -1;
+         //##########################################
+         pthread_mutex_unlock(&mutex);     //Koniec sekcji krytycznej
 
-       //Poczatek sekcji krytycznej
-        pthread_mutex_lock(&mutex);
-       zbiornik_paliwa = zbiornik_paliwa -1;
-
-       //Koniec sekcji krytycznej
-       pthread_mutex_unlock(&mutex);
-
-       nalane = nalane +1;
-       naleznosc = naleznosc+cena;
-       if (pojemnosc_baku ==wartosc1){
-           nalane1=nalane;
-           naleznosc1=naleznosc;
-
-       }else{
-           nalane2=nalane;
-           naleznosc2=naleznosc;
+         if (pojemnosc_baku ==wartosc1){
+            nalane1+=1;
+            naleznosc1+=cena;}
+         else if (pojemnosc_baku==wartosc2){
+           nalane2+=1;
+           naleznosc2+=cena;
        }
-
-
-
        usleep(200000);
-
-
     }
-    utarg= utarg+naleznosc;
+
+    if (pojemnosc_baku ==wartosc1)
+        utarg += naleznosc1;
+    else if (pojemnosc_baku==wartosc2)
+       utarg+=naleznosc2;
+
     pthread_exit(NULL);
 
 }
 
 void* monitoring(void *){
     erase();
-
-
-
     initscr();
 
     start_color();
@@ -82,73 +73,64 @@ void* monitoring(void *){
     attroff(COLOR_PAIR(1));
     attron(COLOR_PAIR(4));
     mvprintw(2,25,"***STACJA BEZNYNOWA***");
-
     attroff(COLOR_PAIR(4));
     attron(COLOR_PAIR(1));
     mvprintw(3,0,"======================================================================");
-    mvprintw(4,5,"Pojemnosc zbiornika: %u l.", zbiornik_paliwa);
+    mvprintw(4,5,"Pojemnosc poczatkowa zbiornika: %u l.", zbiornik_paliwa);
     mvprintw(5,5,"Cena litra paliwa: %*.*f PLN ",5,2, cena);
     mvprintw(6,5,"Pojemnosc zbiornika 1 samochodu: %u l.", wartosc1);
     mvprintw(7,5,"Pojemnosc zbiornika 2 samochodu: %u l.", wartosc2);
     mvprintw(20,3,"Nacisnij:      aby zakonczyc program");
-    mvprintw(21,3,"Nacisnij:      aby wylaczyc dystrybutro 1");
-    mvprintw(22,3,"Nacisnij:      aby wylaczyc dystrybutor 2");
+    mvprintw(21,3,"Nacisnij:      aby wlaczyc/wylaczyc dystrybutro 1");
+    mvprintw(22,3,"Nacisnij:      aby wlaczyc/wylaczyc dystrybutor 2");
     attroff(COLOR_PAIR(1));
     attron(COLOR_PAIR(4));
     mvprintw(20,14,"q");
-    mvprintw(21,14,"o");
-    mvprintw(22,14,"p");
+    mvprintw(21,14,"1");
+    mvprintw(22,14,"2");
     attroff(COLOR_PAIR(4));
 
-
-    char c;
     timeout(0);
-    while(trwa){
+    while(true){  //petla monitoringu
         attron(COLOR_PAIR(2));
         mvprintw(10,10,"Zbiornik [ %u litrow ] ", zbiornik_paliwa);
         mvprintw(11,10,"Utarg [ %*.*f PLN ] ",5,2, utarg);
-
         attroff(COLOR_PAIR(2));
         attron(COLOR_PAIR(1));
 
-        //if(nalane1 >0) {
+        mvprintw(14, 10, "DYSTRYBUTOR 1:");
+        mvprintw(15, 10, "[ %u litrow ]  ", nalane1);
+        mvprintw(16, 10, "[ %*.*f PLN ] ", 5, 2, naleznosc1);
 
-            mvprintw(14, 10, "DYSTRYBUTOR 1:");
-            mvprintw(15, 10, "[ %u litrow ]  ", nalane1);
-            mvprintw(16, 10, "[ %*.*f PLN ] ", 5, 2, naleznosc1);
-        //}
-
-     //   if (nalane2 > 0) {
-            mvprintw(14, 40, "DYSTRYBUTOR 2:");
-            mvprintw(15, 40, "[ %u litrow ]  ", nalane2);
-            mvprintw(16, 40, "[ %*.*f PLN ] ", 5, 2, naleznosc2);
-       //     }
+        mvprintw(14, 40, "DYSTRYBUTOR 2:");
+        mvprintw(15, 40, "[ %u litrow ]  ", nalane2);
+        mvprintw(16, 40, "[ %*.*f PLN ] ", 5, 2, naleznosc2);
 
         mvprintw(22, 50, "...");
-
-
         attroff(COLOR_PAIR(1));
-
+        char c;
         c=getch();
         if(c=='q'){
+            if(start1)
             pthread_cancel(watek1);
+            if(start2)
             pthread_cancel(watek2);
             endwin();
             pthread_cancel(watek_wyswietlania);
-
-
             break;}
-        else if(c=='o')
+         else if(c=='1' && start1==true){
             pthread_cancel(watek1);
-        else if(c=='p')
+            start1=false;}
+         else if(c=='2'&& start2==true){
             pthread_cancel(watek2);
-
-
-
+            start2=false;}
+        else if(c=='1'&& start1==false) {
+            pthread_create(&watek1, NULL, tankowanie, &wartosc1);//rozpoczacie watku pierwszego dystrybutora
+            start1=true;}
+        else if(c=='2'&& start2==false){
+            pthread_create(&watek2,NULL, tankowanie, &wartosc2);//rozpoaczcie watku drugiego dystrybutora
+            start2=true;}
         refresh();
-
-
-
     }
     attron(COLOR_PAIR(3));
     mvprintw(24,3,"NACISNIJ DOWOLNY PRZYCISK BY ZAKOCZYC");
@@ -156,10 +138,7 @@ void* monitoring(void *){
     timeout(10000);
     getch();
     attroff(COLOR_PAIR(1));
-
-
     endwin();
-
 
 }
 
@@ -179,30 +158,21 @@ void okno_startowe(){
     attron(COLOR_PAIR(4));
     mvprintw(5,25,"***   STACJA BEZNYNOWA     ***");
     attroff(COLOR_PAIR(4));
-
-
-
-
     attron(COLOR_PAIR(1));
     mvprintw(20,0,"======================================================================");
     mvprintw(14,20,"Ladowanie programu prosze czekac ;)");
-
     mvprintw(15,25,"[");
     mvprintw(15,46,"]");
-
     attroff(COLOR_PAIR(1));
-
 
    for(int x=26;x<46;x++){
        attron(COLOR_PAIR(3));
        mvprintw(15,x,"#");
        attroff(COLOR_PAIR(3));
        usleep(150000);
-
        refresh();
-
-
    }
+
     mvprintw(21,20,"Nacisnij dowony przycisk aby kontyuowac");
     getch();
     refresh();
@@ -212,29 +182,13 @@ void okno_startowe(){
 
 int main (void){
 
+    okno_startowe();//wywolanie funkcji okna startowego ncurses
 
-    okno_startowe();
-
-
-
-
-    pthread_create(&watek_wyswietlania,NULL, monitoring,NULL);
+    pthread_create(&watek_wyswietlania,NULL, monitoring,NULL); //rozpoczacie watku monittoringu tankowania
 
 
-
-
-    pthread_create(&watek1,NULL, tankowanie, &wartosc1);
-    usleep(5000000);
-
-    pthread_create(&watek2,NULL, tankowanie, &wartosc2);
-
-
-
-
-
-    pthread_join(watek1, NULL);
+    pthread_join(watek1, NULL);                   //czekanie na zakcnczenie watkow
     pthread_join(watek2, NULL);
-    trwa= false;
     pthread_join(watek_wyswietlania, NULL);
 
 
@@ -243,67 +197,3 @@ int main (void){
 
 }
 
-
-
-/*
-struct sum_runner_struct{
-    long long limit;
-    long long answer;
-
-};
-//funkcja watku generujaca sume od 0 do N
-void* sum_runner(void* arg){
-
-    struct sum_runner_struct *arg_struct= (struct sum_runner_struct*) arg;
-
-    long long sum = 0;
-
-
-
-    for (long long i= 0; i<=arg_struct->limit; i++){
-        sum +=i;
-
-    }
-
-    arg_struct ->answer = sum;
-
-    pthread_exit(0) ;
-}
-
-
-
-int main(int argc, char ** argv) {
-
-
-    //STACJA BENZYNOWA
-
-
-    if (argc <2 ) {
-        printf ("Użycie: %s <liczba 1> <liczba 2> ... <liczba N>\n", argv[0]);
-        exit(-1);
-    }
-
-    int liczba_argumentow= argc - 1; //liczba argumentow to liczba argumentow -1 bo pierwszy to nazwa pliku
-    struct sum_runner_struct args[liczba_argumentow];
-
-    pthread_t nazwyWatkow[liczba_argumentow];
-    for (int i=0; i< liczba_argumentow;i++) {
-
-        args[i].limit = atoll(argv[i+1]);
-
-        pthread_attr_t attr; //thread atrybut
-        pthread_attr_init(&attr);
-        pthread_create(&nazwyWatkow[i], &attr, sum_runner, &args[i]);
-
-    }
-
-for(int i=0; i<liczba_argumentow;i++) {
-    pthread_join(nazwyWatkow[i], NULL);//czekanie na zakonczenie watku
-    cout<<"Suma dla watku:"<<i<<", argumentu:"<< args[i].limit<<" = "<<args[i].answer<<endl;
-     //printf("Sum for thread %u is %lld \n",nazwyWatkow[i],args[i].answer);
-
-}
-
-    return 0;
-}
- */
