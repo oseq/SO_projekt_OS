@@ -9,4 +9,8 @@
 /home/oskar/CLionProjects/SO_projekt_OS/main.cpp
 iostream
 -
+unistd.h
+-
+ncurses.h
+-
 

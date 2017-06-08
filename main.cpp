@@ -3,8 +3,7 @@
 #include <ncurses.h>
 
 
-
-    using namespace std;
+using namespace std;
 
 int zbiornik_paliwa= 5000;
 float utarg;
@@ -20,32 +19,26 @@ int nalane2;
 float naleznosc1;
 float naleznosc2;
 
-//long long sum=5000;
-//int ilosc_powtorzen= 50000;
-//long long sum=0;
-/*
-struct struktura_dystrybutora{
-    int kupione_paliwo;
-    float naleznosc;
 
-};*/
-
+pthread_t watek1;//id
+pthread_t watek2;
+pthread_t watek_wyswietlania;
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-void* counting_thread(void *arg)
+void* tankowanie(void *arg)
 {
     int nalane=0;
     float naleznosc=0;
    int pojemnosc_baku = *(int *) arg;
-   //float jedna_dziesiata_baku= pojemnosc_baku*0.1;
-    //int dziesiatki= 1;
+
 
 
    for (int i = 0; i < pojemnosc_baku; i++){
-        //Poczatek sekcji krytycznej
+
+       //Poczatek sekcji krytycznej
         pthread_mutex_lock(&mutex);
-                zbiornik_paliwa = zbiornik_paliwa -1;
+       zbiornik_paliwa = zbiornik_paliwa -1;
 
        //Koniec sekcji krytycznej
        pthread_mutex_unlock(&mutex);
@@ -59,8 +52,10 @@ void* counting_thread(void *arg)
        }else{
            nalane2=nalane;
            naleznosc2=naleznosc;
-
        }
+
+
+
        usleep(200000);
 
 
@@ -70,29 +65,44 @@ void* counting_thread(void *arg)
 
 }
 
-void* monitoring(void *arg){
+void* monitoring(void *){
     erase();
 
 
+
     initscr();
+
     start_color();
     init_pair(1,COLOR_GREEN,COLOR_BLACK);
-    init_pair(2,COLOR_BLUE,COLOR_BLACK);
+    init_pair(2,COLOR_MAGENTA,COLOR_BLACK);
     init_pair(3,COLOR_RED,COLOR_BLACK);
+    init_pair(4,COLOR_YELLOW,COLOR_BLACK);
     attron(COLOR_PAIR(1));
     printw("======================================================================");
     attroff(COLOR_PAIR(1));
-    attron(COLOR_PAIR(2));
+    attron(COLOR_PAIR(4));
     mvprintw(2,25,"***STACJA BEZNYNOWA***");
 
-    attroff(COLOR_PAIR(2));
+    attroff(COLOR_PAIR(4));
     attron(COLOR_PAIR(1));
     mvprintw(3,0,"======================================================================");
     mvprintw(4,5,"Pojemnosc zbiornika: %u l.", zbiornik_paliwa);
     mvprintw(5,5,"Cena litra paliwa: %*.*f PLN ",5,2, cena);
     mvprintw(6,5,"Pojemnosc zbiornika 1 samochodu: %u l.", wartosc1);
     mvprintw(7,5,"Pojemnosc zbiornika 2 samochodu: %u l.", wartosc2);
+    mvprintw(20,3,"Nacisnij:      aby zakonczyc program");
+    mvprintw(21,3,"Nacisnij:      aby wylaczyc dystrybutro 1");
+    mvprintw(22,3,"Nacisnij:      aby wylaczyc dystrybutor 2");
+    attroff(COLOR_PAIR(1));
+    attron(COLOR_PAIR(4));
+    mvprintw(20,14,"q");
+    mvprintw(21,14,"o");
+    mvprintw(22,14,"p");
+    attroff(COLOR_PAIR(4));
 
+
+    char c;
+    timeout(0);
     while(trwa){
         attron(COLOR_PAIR(2));
         mvprintw(10,10,"Zbiornik [ %u litrow ] ", zbiornik_paliwa);
@@ -101,58 +111,122 @@ void* monitoring(void *arg){
         attroff(COLOR_PAIR(2));
         attron(COLOR_PAIR(1));
 
-        if(nalane1 >0) {
+        //if(nalane1 >0) {
 
             mvprintw(14, 10, "DYSTRYBUTOR 1:");
             mvprintw(15, 10, "[ %u litrow ]  ", nalane1);
             mvprintw(16, 10, "[ %*.*f PLN ] ", 5, 2, naleznosc1);
-        }
+        //}
 
-        if (nalane2 > 0) {
+     //   if (nalane2 > 0) {
             mvprintw(14, 40, "DYSTRYBUTOR 2:");
             mvprintw(15, 40, "[ %u litrow ]  ", nalane2);
             mvprintw(16, 40, "[ %*.*f PLN ] ", 5, 2, naleznosc2);
-            }
+       //     }
+
+        mvprintw(22, 50, "...");
+
+
+        attroff(COLOR_PAIR(1));
+
+        c=getch();
+        if(c=='q'){
+            pthread_cancel(watek1);
+            pthread_cancel(watek2);
+            endwin();
+            pthread_cancel(watek_wyswietlania);
+
+
+            break;}
+        else if(c=='o')
+            pthread_cancel(watek1);
+        else if(c=='p')
+            pthread_cancel(watek2);
+
+
 
         refresh();
 
 
 
     }
+    attron(COLOR_PAIR(3));
+    mvprintw(24,3,"NACISNIJ DOWOLNY PRZYCISK BY ZAKOCZYC");
+    attroff(COLOR_PAIR(3));
+    timeout(10000);
     getch();
     attroff(COLOR_PAIR(1));
+
+
+    endwin();
+
+
+}
+
+void okno_startowe(){
+
+    //OKNO POCZATKOWE
+    initscr();
+
+    start_color();
+    init_pair(1,COLOR_GREEN,COLOR_BLACK);
+    init_pair(2,COLOR_MAGENTA,COLOR_BLACK);
+    init_pair(3,COLOR_RED,COLOR_BLACK);
+    init_pair(4,COLOR_YELLOW,COLOR_BLACK);
+    attron(COLOR_PAIR(1));
+    printw("======================================================================");
+    attroff(COLOR_PAIR(1));
+    attron(COLOR_PAIR(4));
+    mvprintw(5,25,"***   STACJA BEZNYNOWA     ***");
+    attroff(COLOR_PAIR(4));
+
+
+
+
+    attron(COLOR_PAIR(1));
+    mvprintw(20,0,"======================================================================");
+    mvprintw(14,20,"Ladowanie programu prosze czekac ;)");
+
+    mvprintw(15,25,"[");
+    mvprintw(15,46,"]");
+
+    attroff(COLOR_PAIR(1));
+
+
+   for(int x=26;x<46;x++){
+       attron(COLOR_PAIR(3));
+       mvprintw(15,x,"#");
+       attroff(COLOR_PAIR(3));
+       usleep(150000);
+
+       refresh();
+
+
+   }
+    mvprintw(21,20,"Nacisnij dowony przycisk aby kontyuowac");
+    getch();
+    refresh();
     endwin();
 
 }
 
 int main (void){
 
-   //OKNO POCZATKOWE
-    initscr();
-    printw("======================================================================");
-    move(5,25);
-    printw("***STACJA BEZNYNOWA***");
-    //move(30,25);
-    mvprintw(20,0,"======================================================================");
-    mvprintw(21,20,"wcisnij dowonly klawisz");
-    refresh();
-    getch();
-    endwin();
+
+    okno_startowe();
 
 
 
-    pthread_t watek_wyswietlania;
-    int wartosc3 = 1;
-    pthread_create(&watek_wyswietlania,NULL, monitoring, &wartosc3);
+
+    pthread_create(&watek_wyswietlania,NULL, monitoring,NULL);
 
 
-    pthread_t watek1;//id
-    pthread_t watek2;
 
-    pthread_create(&watek1,NULL, counting_thread, &wartosc1);
+
+    pthread_create(&watek1,NULL, tankowanie, &wartosc1);
     usleep(5000000);
 
-    pthread_create(&watek2,NULL, counting_thread, &wartosc2);
+    pthread_create(&watek2,NULL, tankowanie, &wartosc2);
 
 
 
